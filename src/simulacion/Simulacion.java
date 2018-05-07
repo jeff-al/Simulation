@@ -5,6 +5,8 @@ import static java.lang.System.out;
 
 public class Simulacion {
 
+    //Itera sobre la lista de ventos para buscar el que sigue según el reloj y lo devuelve.
+    //Si una salida y una entrada tienen el mismo tiempo entonces devuelve la salida.
     public static Eventos BuscarMenor(List<Eventos> lista) {
         int tiempo = 10000;
         int index = 0;
@@ -23,13 +25,14 @@ public class Simulacion {
     }
 
     public static void main(String[] args) {
-        double[][] tabla1 = {
+        
+        double[][] tabla1 = { //Tabla 1 (Tiempo entre llamadas)
             {1.00, 0.40},
             {2.00, 0.75},
             {3.00, 1.00}
         };
 
-        double[][] tabla2 = {
+        double[][] tabla2 = { //Tabla 2 (Duración de llamada)
             {2.00, 0.10},
             {3.00, 0.35},
             {4.00, 0.75},
@@ -37,68 +40,59 @@ public class Simulacion {
             {10.00, 1.00}
         };
 
-        int reloj = 0;
+        int reloj = 0;    //variable de reloj
 
-        boolean statS1 = false;
-        boolean statS2 = false;
+        int statS = 0;   //Status de los servidores 0 == libres, 1 == 1 coupado y 1 libre, 2 == ocupados
 
-        int l = 0;
-        int lq = 0;
-        int salidos = 0;
 
-        List<Eventos> lista = new ArrayList<Eventos>();
-        Queue<Integer> cola = new LinkedList<Integer>();
+        int l = 0;         //Total de clientes en el sistema (En cola y siendo atendidos)
+        int salida = 0;
+
+        List<Eventos> lista = new ArrayList<Eventos>();      //Lista de eventos
+        Queue<Integer> cola = new LinkedList<Integer>();     //Cola del sistema
         
         Eventos e = new Eventos(); //Para eventos de entrada
         Eventos s = new Eventos(); //Para eventos de salida
-        lista.add(e); //Añade la primera entrada 
+        lista.add(e); //Añade la primera entrada con id de cliente 1 y tiempo 0
 
-        Eventos aux; //Para manejar los eventos
-        int cont = 1;
-        while (salidos < 15) {
+        Eventos aux; //Para manejar el evento que se van a procesar
+        
+        int idCliente = 1;  //ID del cliente 
+        
+        int numeroSalidas = 15; //Numero de salidas que escoge el usuario para la condicion de parada (15 por defecto)
+        
+        while (salida < numeroSalidas) {
             aux = BuscarMenor(lista);
-            System.out.print("Cliente: " + aux.cliente + "  Tipo: " + aux.tipo + "  Tiempo: " + aux.tiempo + "  Numero: " + String.format("%.2f", aux.numeroGen));
+            System.out.print("Cliente: " + aux.cliente + " | Tipo: " + aux.tipo + " | Tiempo: " + aux.tiempo + " | Numero: " + String.format("%.2f", aux.numeroGen));
             reloj = aux.tiempo;
             if (aux.tipo == 'E') { //Si el evento entrante es una Llegada
-                if (statS1 == false) {
-                    statS1 = true;
+                if (statS < 2) { //Si hay al menos un servidor libre
+                    statS++;
                     l++;
                     s = new Eventos();
-                    s.GenEvento('S', tabla2, reloj, aux.cliente);
+                    s.GenEvento('S', tabla2, reloj, aux.cliente); //Se genera la salida de esa entrada
                     lista.add(s);
-                } else if (statS2 == false) {
-                    statS2 = true;
-                    l++;
-                    s = new Eventos();
-                    s.GenEvento('S', tabla2, reloj, aux.cliente);
-                    lista.add(s);
-                } else {
-                    lq++;
+                } else {             //Si los servidores están ocupados      
                     l++;
                     cola.add(aux.cliente);
                 }
+                idCliente++; //Se cambia de cliente
                 e = new Eventos();
-                cont++;
-                e.GenEvento('E', tabla1, reloj, cont);
+                e.GenEvento('E', tabla1, reloj, idCliente); //Se genera el la llegada del cliente
                 lista.add(e);
             }//fin de una Llegada
             else { //Si el evento es una salida
-                if (lq > 0) {
-                    lq--;
+                if (cola.size() > 0) { //Si hay, al menos, un cliente en cola
                     s = new Eventos();
-                    s.GenEvento('S', tabla2, reloj,cola.poll());
+                    s.GenEvento('S', tabla2, reloj,cola.poll()); //Se saca al cliente de la cola y se le genera la salida
                     lista.add(s);
-                } else {
-                    if (statS1 == true) {
-                        statS1 = false;
-                    } else {
-                        statS2 = false;
-                    }
+                } else { //Si no hay clientes en cola
+                    statS--;
                 }
                 l--;
-                salidos++;
+                salida++;
             } //Fin de la salida
-            System.out.println("  Reloj: " + reloj + "  StatS1: " + statS1 + "  StatS2: " + statS2 + "  L: " + l + "   Lq: " + lq + "\n");
+            System.out.println(" | Reloj: " + reloj + " | StatS: " + statS + " (Ocupado(s)) |  L: " + l + " |  Lq: " + cola.size() + "\n");
 
         }
     }
